@@ -1,0 +1,3 @@
+[demo_test1]
+#10.0.1.157
+sh-ecs01 ansible_ssh_host=10.0.1.157 ansible_ssh_user="root" ansible_ssh_pass="nFRvmBMGpjuHeG3u" ansible_ssh_port=22

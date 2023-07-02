@@ -1,0 +1,104 @@
+- name: "获取当前时间"
+  shell: date +%F_%H%M%S
+  register: date_result
+
+- name: "获取{{ module_name }}构建物的名称"
+  find:
+    paths:
+      - "{{ JenkinsWorkspace.msg }}/deploy/target"
+    file_type: file
+    use_regex: yes
+    patterns: ".*{{ module_name }}((?!sources).)*.jar$"
+    recurse: no
+  register: artcraft
+  delegate_to: localhost
+
+- name: "判断构建物是否存在，不存在则退出"
+  fail:
+    msg: "{{ module_name }}.jar is not find"
+  when: artcraft.matched == 0
+
+- name: "复制Jenkins构建物{{ module_name }}到对应服务器的指定目录"
+  copy:
+    src: "{{ item.path }}"
+    dest: "{{ program_dir_tmp }}/{{ module_name }}.jar"
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: "0644"
+    force: yes
+    #backup: yes
+  with_items: "{{ artcraft.files }}"
+
+- name: 注册.部署前.程序运行状况并注册状态
+  shell: ps -ef | grep {{ module_name }} | grep {{ appuser }} | awk '{print $2}'
+  ignore_errors: True
+  register: artcraft_status
+
+- name: 回显并注册当前进程PID信息
+  debug:
+    var: artcraft_status.stdout_lines[0]
+    verbosity: 0
+  when: artcraft_status.stdout_lines[1]  is defined
+
+- name: 提示当前进程没有运行
+  debug:
+    msg: "当前用户服务进程没有运行...部署继续..."
+  when: artcraft_status.stdout_lines[1] is undefined
+
+- name: 停止{{ module_name }}对应的服务
+  command: supervisorctl stop  {{ module_name }}
+  when: artcraft_status.stdout_lines[1]  is defined
+  register: artcraft_stop_status
+
+- name: 回显当前程序状态是否停止成功
+  debug:
+    var: artcraft_stop_status
+    verbosity: 0
+  when: artcraft_status.stdout_lines[1]  is defined
+
+- name: 注册.部署前.最新软件包的地址
+  shell: ls -lt {{ program_dir_tmp }} | grep {{ module_name }} | head -n 1 |awk '{print $9}'
+  ignore_errors: True
+  register: artcraft_file
+
+- name: 回显当前程序artcraft_file信息
+  debug:
+    var: artcraft_file
+    verbosity: 0
+
+- name: 备份并复制{{ module_name }}的构建物到指定目录
+  copy:
+    src: "{{ program_dir_tmp }}/{{ artcraft_file.stdout }}"
+    dest: "{{ program_dir }}/{{ appuser }}/{{ module_name }}.jar"
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: "0644"
+    backup: yes
+    remote_src: yes
+
+- name: 启动{{ module_name }}服务
+  command: supervisorctl  start {{ module_name }}
+  register: artcraft_start_status
+
+- name: 等待{{ module_name }}服务正常收敛...
+  wait_for:
+    port: "{{ port }}"
+    delay: 10
+    timeout: 60
+  when: port != "0"
+
+- name: 回显当前服务{{ module_name }}状态信息
+  debug:
+    var: artcraft_start_status
+    verbosity: 0
+
+#- name: 更新服务的IP信息
+#  uri:
+#    url: "{{ register_url }}/appinfo/v2/add"
+#    method: POST
+#    body_format: json
+#    body: { "name":"{{ module_name }}","updatetime":"{{ date_result.stdout_lines[0] }}","ip":"{{  play_hosts | join(',') }}","env":"{{ deploy_env }}","project":"{{ module_name }}","note":"" }
+#  register: _register_service
+
+#- name: 返回结果成功
+#  debug: "msg={{ _register_service }}"

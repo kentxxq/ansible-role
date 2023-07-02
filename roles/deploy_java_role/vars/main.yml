@@ -1,0 +1,9 @@
+---
+company: kentxxq
+appuser: root
+
+program_dir: /usr/local/program
+program_dir_tmp: /usr/local/program/tmp
+program_dir_backup: /usr/local/program/backup
+program_dir_logs: /usr/local/program/logs
+

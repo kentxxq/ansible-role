@@ -1,0 +1,5 @@
+- name: 获取workspace变量
+  debug:
+    msg: "{{ lookup('env', 'WORKSPACE')}}"
+  register: JenkinsWorkspace
+  #failed_when: JenkinsWorkspace.msg == ''

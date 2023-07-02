@@ -1,0 +1,7 @@
+---
+- hosts: "{{ ip_list }}"
+  remote_user: root
+  roles:
+    - role: deploy_java_role
+  serial: 1
+  max_fail_percentage: 0

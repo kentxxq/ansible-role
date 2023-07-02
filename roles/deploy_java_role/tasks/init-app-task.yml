@@ -1,0 +1,14 @@
+- name: 判断启动文件 "{{ module_name }}".ini是否存在
+  stat:
+    path: /etc/supervisor/conf.d/{{ module_name }}.conf
+  register: init_file
+
+- name: 如果启动文件不存在就拷贝一份启动模板文件 "{{ module_name }}".ini 到目标主机
+  template:
+    src: supervisor_conf_template.j2
+    dest: /etc/supervisor/conf.d/{{ module_name }}.conf
+  when: init_file.stat.exists == false
+
+- name: 更新supervisor
+  shell: supervisorctl update
+  when: init_file.stat.exists == false

@@ -1,0 +1,46 @@
+- name: 安装Supervisor启动管理程序
+  package:
+    name: supervisor
+    state: present
+
+- name: 开机自启supervisor
+  service:
+    name: supervisor
+    enabled: yes
+
+- name: 创建程序运行目录 "{{ program_dir }}"
+  file:
+    path: "{{program_dir}}"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: 0755
+
+- name: 创建程序备份目录 "{{ program_dir_backup }}"
+  file:
+    path: "{{ program_dir_backup }}"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: 0755
+
+- name: 创建程序运行日志目录 "{{ program_dir_logs }}"
+  file:
+    path: "{{ program_dir_logs }}"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: 0755
+
+- name: 创建程序运行临时目录 "{{ program_dir_tmp }}"
+  file:
+    path: "{{ program_dir_tmp }}"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: 0755
+
+- name: 启动supervisor
+  service:
+    name: supervisor
+    state: started
